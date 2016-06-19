@@ -1,9 +1,13 @@
+#include <stdio.h>
+
 #include "GLDrawing.h"
 #include "GLInput.h"
 
-/* process menu option 'op' */
-void menu(int op) {
+#include "Shaders\LoadShaders.h"
 
+/* process menu option 'op' */
+void menu(int op) 
+{
 	switch (op) {
 	case 'Q':
 	case 'q':
@@ -12,8 +16,8 @@ void menu(int op) {
 }
 
 /* reshaped window */
-void reshape(int width, int height) {
-
+void reshape(int width, int height) 
+{
 	GLfloat fieldOfView = 90.0f;
 	glViewport(0, 0, (GLsizei)width, (GLsizei)height);
 
@@ -26,8 +30,8 @@ void reshape(int width, int height) {
 }
 
 /* render the scene */
-void draw() {
-
+void draw()
+{
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -38,14 +42,20 @@ void draw() {
 	glutSwapBuffers();
 }
 
-/* executed when program is idle */
-void idle() {
+void timerScene(int timestamp_scene)
+{
+	glutPostRedisplay();
+	glutTimerFunc(40, timerScene, 1);
+}
+
+void cleanup(void)
+{
 
 }
 
 /* initialize OpenGL settings */
-void initGL(int width, int height) {
-
+void initGL(int width, int height) 
+{
 	reshape(width, height);
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -53,6 +63,39 @@ void initGL(int width, int height) {
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
+}
+
+void initGLEW()
+{
+	GLenum error;
+
+	glewExperimental = GL_TRUE;
+
+	error = glewInit();
+	if (error != GLEW_OK) {
+		fprintf(stderr, "Error: %s\n", glewGetErrorString(error));
+		exit(-1);
+	}
+	fprintf(stdout, "*********************************************************\n");
+	fprintf(stdout, " - GLEW version supported: %s\n", glewGetString(GLEW_VERSION));
+	fprintf(stdout, " - OpenGL renderer: %s\n", glGetString(GL_RENDERER));
+	fprintf(stdout, " - OpenGL version supported: %s\n", glGetString(GL_VERSION));
+	fprintf(stdout, "*********************************************************\n\n");
+}
+
+void prepareShaderProgram(void)
+{
+	ShaderInfo shader_info_simple[3] = {
+		{ GL_VERTEX_SHADER, "Shaders/simple.vs.glsl" },
+		{ GL_FRAGMENT_SHADER, "Shaders/simple.fs.glsl" },
+		{ GL_NONE, NULL }
+	};
+
+	h_ShaderProgram_simple = LoadShaders(shader_info_simple);
+
+	glUseProgram(h_ShaderProgram_simple);
+	loc_ModelViewProjectionMatrix_simple = glGetUniformLocation(h_ShaderProgram_simple, "ModelViewProjectionMatrix");
+	loc_primitive_color = glGetUniformLocation(h_ShaderProgram_simple, "primitive_color");
 }
 
 void InitGLUTSetting(int argc, char** argv)
@@ -73,8 +116,11 @@ void InitGLUTSetting(int argc, char** argv)
 	glutMotionFunc(mouseMotion);
 	glutReshapeFunc(reshape);
 	glutDisplayFunc(draw);
-	glutIdleFunc(idle);
-	glutIgnoreKeyRepeat(true); // ignore keys held down
+	glutTimerFunc(40, timerScene, 0);
+	glutCloseFunc(cleanup);
+
+	// create shader program.
+	prepareShaderProgram();
 
 	// create a sub menu 
 	int subMenu = glutCreateMenu(menu);
@@ -88,6 +134,7 @@ void InitGLUTSetting(int argc, char** argv)
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
 
 	initGL(800, 600);
+	initGLEW();
 
 	glutMainLoop();
 }

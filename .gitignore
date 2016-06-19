@@ -58,3 +58,4 @@ $RECYCLE.BIN/
 *.sdf
 *.opensdf
 *.Debug
+WaveEquationWithCUDA/Debug
