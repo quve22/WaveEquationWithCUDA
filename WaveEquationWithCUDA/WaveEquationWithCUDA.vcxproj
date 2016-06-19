@@ -88,7 +88,8 @@
     <PostBuildEvent>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
 copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"
-copy "$(SolutionDir)\external\bin\freeglut.dll" "$(OutDir)"</Command>
+copy "$(SolutionDir)\external\bin\freeglut.dll" "$(OutDir)"
+copy "$(SolutionDir)\external\bin\glew32.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <Include>%(Include)</Include>
@@ -163,11 +164,19 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClCompile Include="GLDrawing.cpp" />
     <ClCompile Include="GLInput.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Shaders\LoadShaders.cpp" />
+    <ClCompile Include="Surface.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GLDrawing.h" />
     <ClInclude Include="GLInput.h" />
     <ClInclude Include="kernel.h" />
+    <ClInclude Include="Shaders\LoadShaders.h" />
+    <ClInclude Include="Surface.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\simple.frag" />
+    <None Include="Shaders\simple.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

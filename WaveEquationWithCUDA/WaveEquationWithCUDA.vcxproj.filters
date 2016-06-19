@@ -1,3 +1,34 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CudaCompile Include="kernel.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{faa422c9-2e10-4c7a-b4af-d6118df51bc7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{d1c9ea33-7fbb-4f99-aa5a-a5c0279a76b4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Shaders\LoadShaders.cpp">
+      <Filter>Shader</Filter>
+    </ClCompile>
+    <ClCompile Include="Surface.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Shaders\LoadShaders.h">
+      <Filter>Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="Surface.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\simple.frag">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="Shaders\simple.vert">
+      <Filter>Resources</Filter>
+    </None>
+  </ItemGroup>
 </Project>

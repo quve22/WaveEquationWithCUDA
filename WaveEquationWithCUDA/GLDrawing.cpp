@@ -3,7 +3,23 @@
 #include "GLDrawing.h"
 #include "GLInput.h"
 
+#include "Surface.h"
+
 #include "Shaders\LoadShaders.h"
+
+#define RADIAN 1.7f
+#define TO_RADIAN 0.01745329252f  
+#define TO_DEGREE 57.295779513f
+
+#define N_WIDTH 10
+
+GLuint h_ShaderProgram_simple;
+GLuint h_ShaderProgram_compute;
+GLuint loc_ModelViewProjectionMatrix_simple, loc_primitive_color;
+
+glm::mat4 ModelViewProjectionMatrix, ModelViewMatrix;
+glm::mat4 ViewMatrix, ProjectionMatrix;
+
 
 /* process menu option 'op' */
 void menu(int op) 
@@ -18,27 +34,25 @@ void menu(int op)
 /* reshaped window */
 void reshape(int width, int height) 
 {
-	GLfloat fieldOfView = 90.0f;
-	glViewport(0, 0, (GLsizei)width, (GLsizei)height);
+	float aspect_ratio;
+	glViewport(0, 0, width, height);
 
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	gluPerspective(fieldOfView, (GLfloat)width / (GLfloat)height, 0.1, 500.0);
+	aspect_ratio = (float)width / height;
+	ProjectionMatrix = glm::perspective(40.0f * TO_RADIAN, aspect_ratio, 0.1f, 500.0f);
 
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
+	glutPostRedisplay();
 }
 
 /* render the scene */
-void draw()
+void display()
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
+	glUseProgram(h_ShaderProgram_simple);
+	glClear(GL_COLOR_BUFFER_BIT);
 
-	/* render the scene here */
+	ModelViewProjectionMatrix = ProjectionMatrix * ModelViewMatrix;
 
-	glFlush();
+	draw_surface(h_ShaderProgram_simple, ModelViewProjectionMatrix);
+
 	glutSwapBuffers();
 }
 
@@ -58,11 +72,10 @@ void initGL(int width, int height)
 {
 	reshape(width, height);
 
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	glClearDepth(1.0f);
 
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LEQUAL);
+	// glEnable(GL_DEPTH_TEST);
 }
 
 void initGLEW()
@@ -86,8 +99,8 @@ void initGLEW()
 void prepareShaderProgram(void)
 {
 	ShaderInfo shader_info_simple[3] = {
-		{ GL_VERTEX_SHADER, "Shaders/simple.vs.glsl" },
-		{ GL_FRAGMENT_SHADER, "Shaders/simple.fs.glsl" },
+		{ GL_VERTEX_SHADER, "Shaders/simple.vert" },
+		{ GL_FRAGMENT_SHADER, "Shaders/simple.frag" },
 		{ GL_NONE, NULL }
 	};
 
@@ -98,14 +111,31 @@ void prepareShaderProgram(void)
 	loc_primitive_color = glGetUniformLocation(h_ShaderProgram_simple, "primitive_color");
 }
 
+void prepareScene()
+{
+	prepareSurface(N_WIDTH);
+
+	ViewMatrix = lookAt(glm::vec3(2.0, 1.0, 2.0), glm::vec3(0, 0, 0), glm::vec3(0.0, 1.0, 0.0));
+	ModelViewMatrix = ViewMatrix;
+
+	glutSwapBuffers();
+}
+
 void InitGLUTSetting(int argc, char** argv)
 {
 	glutInit(&argc, argv);
 
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-	glutInitWindowSize(800, 600);
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
+	glutInitWindowSize(800, 800);
 	glutInitWindowPosition(100, 100);
-	glutCreateWindow("Perspective's GLUT Template");
+	glutInitContextVersion(4, 3);
+	glutInitContextProfile(GLUT_CORE_PROFILE);
+	glutCreateWindow("Wave Equation with CUDA");
+
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+
+	initGL(800, 800);
+	initGLEW();
 
 	// register glut call backs
 	glutKeyboardFunc(keyboardDown);
@@ -115,12 +145,9 @@ void InitGLUTSetting(int argc, char** argv)
 	glutMouseFunc(mouseClick);
 	glutMotionFunc(mouseMotion);
 	glutReshapeFunc(reshape);
-	glutDisplayFunc(draw);
+	glutDisplayFunc(display);
 	glutTimerFunc(40, timerScene, 0);
 	glutCloseFunc(cleanup);
-
-	// create shader program.
-	prepareShaderProgram();
 
 	// create a sub menu 
 	int subMenu = glutCreateMenu(menu);
@@ -133,8 +160,11 @@ void InitGLUTSetting(int argc, char** argv)
 	glutAddMenuEntry("Quit", 'q');
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
 
-	initGL(800, 600);
-	initGLEW();
+	// create shader program.
+	prepareShaderProgram();
 
+	prepareScene();
+
+	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 	glutMainLoop();
 }
