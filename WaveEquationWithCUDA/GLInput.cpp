@@ -32,6 +32,7 @@ void mouseClick(int button, int state, int x, int y) {
 }
 
 /* executed when the mouse moves to position ('x', 'y') */
-void mouseMotion(int x, int y) {
+void mouseMotion(int x, int y) 
+{
 
 }
