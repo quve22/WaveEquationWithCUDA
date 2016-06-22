@@ -1,0 +1,43 @@
+#version 430
+
+layout( local_size_x = 16, local_size_y = 16 ) in;
+
+uniform float a;
+
+layout(std430, binding=0) buffer PosIn {
+  vec4 pos0[];
+};
+layout(std430, binding=1) buffer PosOut {
+  vec4 pos1[];
+};
+layout(std430, binding=2) buffer Ad {
+  float A[];
+};
+layout(std430, binding=3) buffer invAd {
+  float invA[];
+};
+layout(std430, binding=5) buffer axIn {
+  float ax[];
+};
+
+void main() {
+  float res;
+
+  uvec3 nParticles = gl_NumWorkGroups * gl_WorkGroupSize;
+  uint idx = gl_GlobalInvocationID.y * nParticles.x + gl_GlobalInvocationID.x;
+
+  res = (2.0 * pos1[idx].y - pos0[idx].y - ax[idx]) / a;
+  pos0[idx].y = pos1[idx].y;
+
+  if( gl_GlobalInvocationID.y == 0 || 
+      gl_GlobalInvocationID.y == nParticles.y - 1 ||
+      gl_GlobalInvocationID.x == 0 || 
+      gl_GlobalInvocationID.x == nParticles.x - 1) {
+    pos1[idx].y = 0; 
+  }
+  else
+  {
+    pos1[idx].y = res; 
+  }
+}
+
