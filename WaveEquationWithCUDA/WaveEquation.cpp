@@ -1,4 +1,4 @@
-#include <stdio.h>
+ï»¿#include <stdio.h>
 #include <string.h>
 #include <math.h>
 
@@ -24,18 +24,20 @@ void Wave::initDeltaU()
 	for(int i=0 ; i<size2 ; i++)
 		dU[i] = 0.0;
 
-	// ÃÊ±â ¼Ó·ÂÀ» ¼³Á¤.
+	// ì´ˆê¸° ì†ë ¥ì„ ì„¤ì •.
 	// dU[size2/2] = -1.0f;
-	const float ispeed = -2.0f;
-	/*
+	const float ispeed = 3.0f;
+	
 	dU[size * (size/2 - 1) + size/2] = ispeed;
 	dU[size * (size/2 - 1) + size/2 + 1] = ispeed/2.0f;
 	dU[size * (size/2 - 1) + size/2 - 1] = ispeed/2.0f;
 	dU[size * (size/2 - 2) + size/2] = ispeed/2.0f;
 	dU[size * (size/2 - 0) + size/2] = ispeed/2.0f;
-	*/
+	
+	/*
 	dU[size * (size / 3 - 1) + size / 3] = ispeed;
 	dU[(size * (size / 3 - 1) + size / 3) * 2] = ispeed;
+	*/
 }
 
 void Wave::calculateInitialU_1()
@@ -104,7 +106,7 @@ void Wave::calculateVectorB()
 	}
 }
 
-// ÃÖÀûÈ­°¡ ÀüÇô ¼öÇàµÇÁö ¾ÊÀº ÄÚµå.
+// ìµœì í™”ê°€ ì „í˜€ ìˆ˜í–‰ë˜ì§€ ì•Šì€ ì½”ë“œ.
 void Wave::calculateVectorU_1()
 {
 	// Jacobi
@@ -136,7 +138,7 @@ void Wave::calculateVectorU_1()
 	}
 	*/
 
-	// U_1¿¡ ÀÖ´ø °ªÀ» U_0À¸·Î, X¿¡ °è»ê µÈ °ªÀ» U_1·Î ÀÌµ¿.
+	// U_1ì— ìžˆë˜ ê°’ì„ U_0ìœ¼ë¡œ, Xì— ê³„ì‚° ëœ ê°’ì„ U_1ë¡œ ì´ë™.
 	memcpy(U_0, U_1, sizeof(float) * size2);
 	memcpy(U_1, X, sizeof(float) * size2);
 	
@@ -151,6 +153,6 @@ void Wave::calculateVectorU_1()
 	U_1[size * (size/2 - 1) + size/2 + 1] = waveValue;
 	U_1[size * (size/2 - 2) + size/2] = waveValue;
 	
-	// »õ·Î¿î °ªÀ¸·Î B º¤ÅÍ¸¦ °»½Å.
+	// ìƒˆë¡œìš´ ê°’ìœ¼ë¡œ B ë²¡í„°ë¥¼ ê°±ì‹ .
 	calculateVectorB();
 }

@@ -1,9 +1,6 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-extern cudaGraphicsResource *resources[1];
-
 cudaError_t initCudaDevice();
-cudaError_t calculateWaveEquation();
 
-void set_cuda_ogl_interoperability();
+void kernelLauncher(float4 *u0, float4 *u1, int n, float a, float b);

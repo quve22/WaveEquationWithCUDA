@@ -49,5 +49,11 @@
     <None Include="Shaders\wave_normal.comp">
       <Filter>Resources</Filter>
     </None>
+    <None Include="Shaders\quad.frag">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="Shaders\quad.vert">
+      <Filter>Resources</Filter>
+    </None>
   </ItemGroup>
 </Project>

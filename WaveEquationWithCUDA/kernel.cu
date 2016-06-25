@@ -86,3 +86,24 @@ Error:
     
     return cudaStatus;
 }
+
+__global__ void waveEquation(uchar4 *u0_in, uchar4 *u1_in)
+{
+	
+}
+
+// Helper function for using CUDA to add vectors in parallel.
+cudaError_t jacobiWaveEquation(uchar4 *u0_in, uchar4 *u1_in, int n)
+{
+	cudaError_t cudaStatus;
+
+
+
+	 // Check for any errors launching the kernel
+    cudaStatus = cudaGetLastError();
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "jacobiWaveEquation launch failed: %s\n", cudaGetErrorString(cudaStatus));
+    }
+
+	return cudaStatus;
+}

@@ -4,6 +4,9 @@
 #include <vector>
 #include <FreeImage/FreeImage.h>
 
+#include <cuda_runtime.h>
+#include <cuda_gl_interop.h>
+
 #define PRIM_RESTART 0xffffff
 
 struct coord {
@@ -31,7 +34,17 @@ GLuint waveVao;
 GLuint numElements;
 GLuint textureId;
 
+#ifdef USE_GPU
 Wave mWave = Wave(GRID, al, DELTH_T, dh);
+#elif defined USE_CUDA
+Wave mWave = Wave(GRID, al, DELTH_T, dh);
+#else
+Wave mWave = Wave(GRID, 1.0, 0.1, 1.0);
+#endif
+
+struct cudaGraphicsResource *cuda_u0_resource;
+struct cudaGraphicsResource *cuda_u1_resource;
+struct cudaGraphicsResource *cuda_ax_resource;
 
 void My_glTexImage2D_from_file(char *filename) {
 	FREE_IMAGE_FORMAT tx_file_format;
@@ -58,11 +71,11 @@ void My_glTexImage2D_from_file(char *filename) {
 	height = FreeImage_GetHeight(tx_pixmap_32);
 	data = FreeImage_GetBits(tx_pixmap_32);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, data);
+	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, data);
 	// Allocate storage
-	// glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, width, height);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, width, height);
 	// Copy data into storage
-	// glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
 	fprintf(stdout, " * Loaded %dx%d RGBA texture into graphics memory.\n\n", width, height);
 
 	FreeImage_Unload(tx_pixmap_32);
@@ -74,7 +87,7 @@ void initWaveBuffers(int n)
 {
 	glm::ivec2 nParticles(n, n);
 
-	// ¿Ã ¿Œµ¶Ω∫ ∞™¿ª ±‚¡ÿ¿∏∑Œ «¡∏ÆπÃ∆º∫Í∏¶ ¥ŸΩ√ ±◊∏∞¥Ÿ. GL_TRIANGLE_STRIP µÓø°º≠ ¿ØøÎ.
+	// Ïù¥ Ïù∏Îç±Ïä§ Í∞íÏùÑ Í∏∞Ï§ÄÏúºÎ°ú ÌîÑÎ¶¨ÎØ∏Ìã∞Î∏åÎ•º Îã§Ïãú Í∑∏Î¶∞Îã§. GL_TRIANGLE_STRIP Îì±ÏóêÏÑú Ïú†Ïö©.
 	glEnable(GL_PRIMITIVE_RESTART);
 	glPrimitiveRestartIndex(PRIM_RESTART);
 
@@ -147,6 +160,12 @@ void initWaveBuffers(int n)
 	// velocity (2), normal, and texture coordinates.
 	GLuint bufs[8];
 	glGenBuffers(8, bufs);
+	GLenum err = glGetError();
+	if(err != GL_NO_ERROR)
+	{
+		printf("Error occured. glError:0x%04X\n", err);
+	}
+
 	u0Bufs = bufs[0];
 	u1Bufs = bufs[1];
 	aBufs = bufs[2];
@@ -158,7 +177,8 @@ void initWaveBuffers(int n)
 
 	GLuint parts = nParticles.x * nParticles.y;
 
-	// Positionø° ¥Î«— πˆ∆€.
+#ifdef USE_GPU
+	// PositionÏóê ÎåÄÌïú Î≤ÑÌçº.
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, u0Bufs);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, parts * 4 * sizeof(GLfloat), &initU0[0], GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, axBuf);
@@ -166,21 +186,46 @@ void initWaveBuffers(int n)
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, u1Bufs);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, parts * 4 * sizeof(GLfloat), &initU1[0], GL_DYNAMIC_DRAW);
 
-	// Normalø° ¥Î«— πˆ∆€.
+	// NormalÏóê ÎåÄÌïú Î≤ÑÌçº.
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, normBuf);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, parts * 4 * sizeof(GLfloat), NULL, GL_DYNAMIC_COPY);
 
-	// ªÔ∞¢«¸¿ª ±◊∏Æ±‚ ¿ß«— Index º¯º≠.
+#elif defined USE_CUDA
+	// PositionÏóê ÎåÄÌïú Î≤ÑÌçº.
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, u0Bufs);
+	glBufferData(GL_PIXEL_UNPACK_BUFFER, parts * 4 * sizeof(GLfloat), &initU0[0], GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, axBuf);
+	glBufferData(GL_PIXEL_UNPACK_BUFFER, parts * sizeof(GLfloat), &axValue[0], GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, u1Bufs);
+	glBufferData(GL_PIXEL_UNPACK_BUFFER, parts * 4 * sizeof(GLfloat), &initU1[0], GL_DYNAMIC_DRAW);
+
+
+	// NormalÏóê ÎåÄÌïú Î≤ÑÌçº.
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, normBuf);
+	glBufferData(GL_PIXEL_UNPACK_BUFFER, parts * 4 * sizeof(GLfloat), NULL, GL_DYNAMIC_COPY);
+
+	cudaGraphicsGLRegisterBuffer(&cuda_u0_resource, u0Bufs, cudaGraphicsMapFlagsWriteDiscard);
+	cudaGraphicsGLRegisterBuffer(&cuda_u1_resource, u1Bufs, cudaGraphicsMapFlagsWriteDiscard);
+	cudaGraphicsGLRegisterBuffer(&cuda_ax_resource, axBuf, cudaGraphicsMapFlagsWriteDiscard);
+
+	cudaError_t cudaStatus = cudaGetLastError();
+    if (cudaStatus != cudaSuccess) {
+        fprintf(stderr, "CUDA to GL register failed: %s\n", cudaGetErrorString(cudaStatus));
+    }
+
+#endif
+
+	// ÏÇºÍ∞ÅÌòïÏùÑ Í∑∏Î¶¨Í∏∞ ÏúÑÌïú Index ÏàúÏÑú.
 	glBindBuffer(GL_ARRAY_BUFFER, elBuf);
 	glBufferData(GL_ARRAY_BUFFER, el.size() * sizeof(GLuint), &el[0], GL_DYNAMIC_COPY);
 
-	// ≈ÿΩ∫√≥ ¡¬«• πˆ∆€.
+	// ÌÖçÏä§Ï≤ò Ï¢åÌëú Î≤ÑÌçº.
 	glBindBuffer(GL_ARRAY_BUFFER, tcBuf);
 	glBufferData(GL_ARRAY_BUFFER, initTc.size() * sizeof(GLfloat), &initTc[0], GL_STATIC_DRAW);
 
 	numElements = GLuint(el.size());
 
-	// VAO º≥¡§.
+	// VAO ÏÑ§Ï†ï.
 	glGenVertexArrays(1, &waveVao);
 	glBindVertexArray(waveVao);
 
@@ -199,10 +244,10 @@ void initWaveBuffers(int n)
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elBuf);
 	glBindVertexArray(0);
 
-	// ≈ÿΩ∫√ƒ ∑Œµ˘.
+	// ÌÖçÏä§Ï≥ê Î°úÎî©.
 	glGenTextures(1, &textureId);
-	glActiveTexture(GL_TEXTURE0);
 
+	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, textureId);
 	My_glTexImage2D_from_file("Resources/water_textile.jpg");
 
@@ -210,6 +255,8 @@ void initWaveBuffers(int n)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void prepareSurface(int N)
@@ -271,22 +318,6 @@ void prepareSurface(int N)
 	free(surface_vert_arr);
 }
 
-void draw_surface(GLuint hProgramId, glm::mat4 mvpMatrix)
-{
-	GLfloat object_color[3] = { 1.0f, 0.0f, 0.0f };
-
-	GLuint loc_ModelViewProjectionMatrix_simple = glGetUniformLocation(hProgramId, "ModelViewProjectionMatrix");
-	GLuint loc_primitive_color = glGetUniformLocation(hProgramId, "primitive_color");
-
-	glBindVertexArray(surface_VAO);
-	// glUniform3fv(loc_primitive_color, 1, object_color);
-
-	glUniformMatrix4fv(loc_ModelViewProjectionMatrix_simple, 1, GL_FALSE, &mvpMatrix[0][0]);
-	glDrawArrays(GL_LINES, 0, surface_n_triangles * 3);
-
-	glBindVertexArray(0);
-}
-
 void drawSurface(GLuint hProgramId, glm::mat4 mvpMatrix)
 {
 	GLfloat object_color[3] = { 1.0f, 0.0f, 0.0f };
@@ -296,9 +327,15 @@ void drawSurface(GLuint hProgramId, glm::mat4 mvpMatrix)
 	GLuint loc_texture = glGetUniformLocation(hProgramId, "u_texture");
 
 	glBindVertexArray(waveVao);
+
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, textureId);
+
 	glUniform1i(loc_texture, textureId);
 	glUniformMatrix4fv(loc_ModelViewProjectionMatrix_simple, 1, GL_FALSE, &mvpMatrix[0][0]);
 	glDrawElements(GL_LINE_STRIP, numElements, GL_UNSIGNED_INT, 0);
 	// glDrawElements(GL_TRIANGLE_STRIP, numElements, GL_UNSIGNED_INT, 0);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
 	glBindVertexArray(0);
 }

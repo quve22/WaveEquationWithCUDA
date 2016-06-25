@@ -14,5 +14,6 @@ void main(void) {
 	//if(texColor == vec4(0.0, 0.0, 0.0, 1.0))
 	//	final_color = vec4(1.0, 0.0, 0.0, 1.0);
 	//else
-	final_color = vec4(TexCoord, 0.0, 1.0);
+	//final_color = vec4(TexCoord, 0.0, 1.0);
+	final_color = texture2D(u_texture, TexCoord);
 }

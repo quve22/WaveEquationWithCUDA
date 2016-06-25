@@ -181,6 +181,8 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     <ClInclude Include="WaveEquationKernel.cuh" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shaders\quad.frag" />
+    <None Include="Shaders\quad.vert" />
     <None Include="Shaders\simple.frag" />
     <None Include="Shaders\simple.vert" />
     <None Include="Shaders\wave.comp" />

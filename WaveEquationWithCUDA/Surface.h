@@ -1,29 +1,36 @@
 #include "WaveEquation.h"
 #include "GLDrawing.h"
 
-#define GRID 80
+#define GRID 64
 
-#define USE_GPU
-#define ITER_COUNT  100
+//#define USE_GPU
+#define USE_CUDA
+#define ITER_COUNT  50
 
-#define al			1.0
+#define al			2.0
 #define DELTH_T	    0.1 / ITER_COUNT
 #define dh			1.0
 
 #ifdef USE_GPU
 extern Wave mWave;
+#elif defined USE_CUDA
+extern Wave mWave;
 #else
-extern Wave mWave(GRID, 1.0, 0.1, 1.0);
+extern Wave mWave;
 #endif
 
 
 extern GLuint surface_VAO;
 
-extern GLuint u0Bufs, u1Bufs;
+extern GLuint u0Bufs, u1Bufs, axBuf;
 extern GLuint waveVao;
+extern GLuint g_pboTexture;
+
+extern struct cudaGraphicsResource *cuda_u0_resource;
+extern struct cudaGraphicsResource *cuda_u1_resource;
+extern struct cudaGraphicsResource *cuda_ax_resource;
 
 void initWaveBuffers(int n);
 void prepareSurface(int N);
 
-void draw_surface(GLuint hProgramId, glm::mat4 mvpMatrix);
 void drawSurface(GLuint hProgramId, glm::mat4 mvpMatrix);

@@ -1,11 +1,11 @@
-#include <stdio.h>
+ï»¿#include <stdio.h>
 #include <stdlib.h>
 
 /*********************************************************
 
-	N x N °ø°£¿¡ ´ëÇÑ Wave EquationÀ» °è»êÇÒ ½Ã
-	¸ğµç sizeµéÀº N-2 x N-2 °ø°£¿¡ ´ëÇÑ °è»êÀ» ¼öÇàÇÑ´Ù.
-	°æ°è ºÎºĞÀÇ U °ªµéÀº ¸ğµÎ 0ÀÌ±â ¶§¹®¿¡ °è»êÇÒ ÇÊ¿ä ¾øÀ½.
+	N x N ê³µê°„ì— ëŒ€í•œ Wave Equationì„ ê³„ì‚°í•  ì‹œ
+	ëª¨ë“  sizeë“¤ì€ N-2 x N-2 ê³µê°„ì— ëŒ€í•œ ê³„ì‚°ì„ ìˆ˜í–‰í•œë‹¤.
+	ê²½ê³„ ë¶€ë¶„ì˜ U ê°’ë“¤ì€ ëª¨ë‘ 0ì´ê¸° ë•Œë¬¸ì— ê³„ì‚°í•  í•„ìš” ì—†ìŒ.
 
 **********************************************************/
 
@@ -14,13 +14,13 @@
 class Wave {
 private:
 	float *X;
-	float *U_1;		// ÇöÀçÀÇ ³ôÀÌ°ª.
-	float *U_0;		// ÀÌÀüÀÇ ³ôÀÌ°ª.
+	float *U_1;		// í˜„ì¬ì˜ ë†’ì´ê°’.
+	float *U_0;		// ì´ì „ì˜ ë†’ì´ê°’.
 	float *dU;
 	float **A;
 	float *B;
 
-	int size;			// waveÀÇ °¡·Î ÇÑ º¯ ±æÀÌ.
+	int size;			// waveì˜ ê°€ë¡œ í•œ ë³€ ê¸¸ì´.
 	int size2;			// size^2
 	float deltaT;
 
@@ -33,7 +33,7 @@ private:
 
 	float accum_t;
 public:
-	Wave(int _size /*ÀÌ °ªÀº ½ÇÁ¦ °ø°£ÀÇ N°ª N-2°ªÀÌ ¾Æ´Ï´Ù.*/, float _alpha, float _deltaT, float _h)
+	Wave(int _size /*ì´ ê°’ì€ ì‹¤ì œ ê³µê°„ì˜ Nê°’ N-2ê°’ì´ ì•„ë‹ˆë‹¤.*/, float _alpha, float _deltaT, float _h)
 	{
 		size = _size;
 		size2 = size * size;
@@ -54,5 +54,5 @@ public:
 	float* getU0(){ return U_0; };
 	float* getU1(){ return U_1; };
 	float** getA(){ return A; };
-	void calculateVectorU_1();	// ¸Å ·çÇÁ¸¶´Ù ÀÌ¸¦ ½ÇÇà.
+	void calculateVectorU_1();	// ë§¤ ë£¨í”„ë§ˆë‹¤ ì´ë¥¼ ì‹¤í–‰.
 };
