@@ -29,6 +29,7 @@ GLuint u0Bufs, u1Bufs;
 GLuint aBufs, invaBufs;
 GLuint normBuf, elBuf, tcBuf;
 GLuint axBuf;
+GLuint gridBuf;
 
 GLuint waveVao;
 GLuint numElements;
@@ -45,6 +46,7 @@ Wave mWave = Wave(GRID, 1.0, 0.1, 1.0);
 struct cudaGraphicsResource *cuda_u0_resource;
 struct cudaGraphicsResource *cuda_u1_resource;
 struct cudaGraphicsResource *cuda_ax_resource;
+struct cudaGraphicsResource *cuda_grid_resource;
 
 void My_glTexImage2D_from_file(char *filename) {
 	FREE_IMAGE_FORMAT tx_file_format;
@@ -158,8 +160,8 @@ void initWaveBuffers(int n)
 
 	// We need buffers for position (2), element index,
 	// velocity (2), normal, and texture coordinates.
-	GLuint bufs[8];
-	glGenBuffers(8, bufs);
+	GLuint bufs[9];
+	glGenBuffers(9, bufs);
 	GLenum err = glGetError();
 	if(err != GL_NO_ERROR)
 	{
@@ -174,6 +176,7 @@ void initWaveBuffers(int n)
 	elBuf = bufs[5];
 	tcBuf = bufs[6];
 	axBuf = bufs[7];
+	gridBuf = bufs[8];
 
 	GLuint parts = nParticles.x * nParticles.y;
 
@@ -198,6 +201,8 @@ void initWaveBuffers(int n)
 	glBufferData(GL_PIXEL_UNPACK_BUFFER, parts * sizeof(GLfloat), &axValue[0], GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, u1Bufs);
 	glBufferData(GL_PIXEL_UNPACK_BUFFER, parts * 4 * sizeof(GLfloat), &initU1[0], GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, gridBuf);
+	glBufferData(GL_PIXEL_UNPACK_BUFFER, parts * 4 * sizeof(GLfloat), 0, GL_STATIC_DRAW);
 
 
 	// Normal에 대한 버퍼.
@@ -207,6 +212,7 @@ void initWaveBuffers(int n)
 	cudaGraphicsGLRegisterBuffer(&cuda_u0_resource, u0Bufs, cudaGraphicsMapFlagsWriteDiscard);
 	cudaGraphicsGLRegisterBuffer(&cuda_u1_resource, u1Bufs, cudaGraphicsMapFlagsWriteDiscard);
 	cudaGraphicsGLRegisterBuffer(&cuda_ax_resource, axBuf, cudaGraphicsMapFlagsWriteDiscard);
+	cudaGraphicsGLRegisterBuffer(&cuda_grid_resource, gridBuf, cudaGraphicsMapFlagsWriteDiscard);
 
 	cudaError_t cudaStatus = cudaGetLastError();
     if (cudaStatus != cudaSuccess) {

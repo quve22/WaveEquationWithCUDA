@@ -27,17 +27,17 @@ void Wave::initDeltaU()
 	// 초기 속력을 설정.
 	// dU[size2/2] = -1.0f;
 	const float ispeed = 3.0f;
-	
+	/*
 	dU[size * (size/2 - 1) + size/2] = ispeed;
 	dU[size * (size/2 - 1) + size/2 + 1] = ispeed/2.0f;
 	dU[size * (size/2 - 1) + size/2 - 1] = ispeed/2.0f;
 	dU[size * (size/2 - 2) + size/2] = ispeed/2.0f;
 	dU[size * (size/2 - 0) + size/2] = ispeed/2.0f;
+	*/
 	
-	/*
 	dU[size * (size / 3 - 1) + size / 3] = ispeed;
 	dU[(size * (size / 3 - 1) + size / 3) * 2] = ispeed;
-	*/
+	
 }
 
 void Wave::calculateInitialU_1()

@@ -12,7 +12,7 @@
 #define TO_RADIAN 0.01745329252f  
 #define TO_DEGREE 57.295779513f
 
-static int W, H;
+int W, H;
 
 GLuint h_ShaderProgram_simple;
 GLuint h_ShaderProgram_compute;
@@ -56,20 +56,25 @@ void cuda_calculation()
 	float4 *u0_out = 0;
 	float4 *u1_out = 0;
 	float4 *ax_out = 0;
+	float4 *grid_out = 0;
 
 	cudaGraphicsMapResources(1, &cuda_u0_resource, 0);
 	cudaGraphicsMapResources(1, &cuda_u1_resource, 0);
 	cudaGraphicsMapResources(1, &cuda_ax_resource, 0);
+	cudaGraphicsMapResources(1, &cuda_grid_resource, 0);
 
 	cudaGraphicsResourceGetMappedPointer((void **)&u0_out, NULL, cuda_u0_resource);
 	cudaGraphicsResourceGetMappedPointer((void **)&u1_out, NULL, cuda_u1_resource);
 	cudaGraphicsResourceGetMappedPointer((void **)&ax_out, NULL, cuda_ax_resource);
+	cudaGraphicsResourceGetMappedPointer((void **)&grid_out, NULL, cuda_grid_resource);
 
-	kernelLauncher(u0_out, u1_out, GRID, mWave.alpha, mWave.beta);
+	for (int i = 0; i < ITER_COUNT; i++)
+		kernelLauncher(u0_out, u1_out, grid_out, GRID, mWave.alpha, mWave.beta);
 
 	cudaGraphicsUnmapResources(1, &cuda_u0_resource, 0);
 	cudaGraphicsUnmapResources(1, &cuda_u1_resource, 0);
 	cudaGraphicsUnmapResources(1, &cuda_ax_resource, 0);
+	cudaGraphicsUnmapResources(1, &cuda_grid_resource, 0);
 }
 
 void checkGLError()
@@ -95,6 +100,7 @@ GLfloat g_color[4] = { 0.63671875f, 0.76953125f, 0.22265625f, 1.0f };
 float g_pointCoord[4] = { 0.0, 0.0, 0.0, 1.0 };
 
 GLuint g_pboTexture;
+GLuint g_gridTexture;
 
 void initPoint()
 {
@@ -117,12 +123,20 @@ void initPoint()
 	glGenTextures(1, &g_pboTexture);
 
 	// Step 2. 텍스쳐 데이터를 저장할 메모리 공간을 우선 생성.
-	glActiveTexture(GL_TEXTURE1);
+	glActiveTexture(GL_TEXTURE0 + 0);
 	glBindTexture(GL_TEXTURE_2D, g_pboTexture);
 	// Step 2-1. 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, GRID, GRID, 0, GL_RGBA, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glGenTextures(1, &g_gridTexture);
+	glActiveTexture(GL_TEXTURE0 + 1);
+	glBindTexture(GL_TEXTURE_2D, g_gridTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, GRID, GRID, 0, GL_RGBA, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
 }
 
 void readPixelBufferObject(GLuint pboId)
@@ -148,21 +162,27 @@ void drawPoint()
 {
 	glBindVertexArray(g_pointVAO);
 
-	readPixelBufferObject(u1Bufs);
+	// readPixelBufferObject(u1Bufs);
 
 	// Step 3. u1Bufs에 해당하는 메모리 공간에 있는 데이터를 시각화 할 예정. 이 Pixel Buffer를 바인딩 한다.
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, u1Bufs);
 	// Step 4. 데이터를 담을 텍스쳐를 바인딩 한다.
-	glActiveTexture(GL_TEXTURE1);
+	glActiveTexture(GL_TEXTURE0 + 0);
 	glBindTexture(GL_TEXTURE_2D, g_pboTexture);
 
 	// Step 5. 사용할 텍스쳐를 활성화 하고 glTexSubImage2D를 이용해 pixel buffer의 데이터를 텍스쳐가 가리키도록 한다.
 	// glTexSubImage2D는 가장 마지막 매개변수가 0일 경우, 현재 GL_PIXEL_UNPACK_BUFFER에 바인딩이 되어 있는 데이터를 텍스쳐의 데이터로서 사용한다.
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, GRID, GRID, GL_RGBA, GL_FLOAT, (void *)0);
 
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, gridBuf);
+	glActiveTexture(GL_TEXTURE0 + 1);
+	glBindTexture(GL_TEXTURE_2D, g_gridTexture);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, GRID, GRID, GL_RGBA, GL_FLOAT, (void *)0);
+
 	// Step 6. 위 과정을 마치면 쉐이더의 sampler2D를 통해 텍스쳐 데이터에 접근이 가능.
 	// 아래와 같이 계속 glGetUniformLocation을 호출하는 것이 좋은 구조는 아니지만 지금은 구현의 편의를 위해 사용.
-	glUniform1i(glGetUniformLocation(h_ShaderProgram_quad, "u_texture"), g_pboTexture);
+	glUniform1i(glGetUniformLocation(h_ShaderProgram_quad, "u_texture"), 0);
+	glUniform1i(glGetUniformLocation(h_ShaderProgram_quad, "u_gridTexture"), 1);
 	glDrawArrays(GL_POINTS, 0, 1);
 
 	// Step 7. 사용이 종료됐으니 바인딩 해제.
@@ -170,6 +190,10 @@ void drawPoint()
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 	glBindVertexArray(0);
 }
+
+const int samples = 50;
+float time[samples];
+int index = 0;
 
 /* render the scene */
 void display()
@@ -193,8 +217,9 @@ void display()
 	glUseProgram(h_ShaderProgram_compute_normal);
 	glDispatchCompute(GRID / local_size, GRID / local_size, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
 #elif defined USE_CUDA
-	for(int i = 0; i < ITER_COUNT; i++)
+	
 		cuda_calculation();
 
 #else
@@ -214,9 +239,6 @@ void display()
 	}
 	glBindVertexArray(0);
 #endif
-
-	// 이전 버전 CUDA 작업.
-	// calculateWaveEquation();
 
 	if(!g_display2DMode)
 	{
@@ -257,10 +279,33 @@ void display()
 	nbFrames++;
 	if(currTime - lastTime >= 1000.0)
 	{
-		printf("%f ms / frame\n", 1000.0 / double(nbFrames));
+		char buf[128];
+		sprintf(buf, "Wave Equation with CUDA : %.2f fps\n", double(nbFrames));
+		glutSetWindowTitle(buf);
 		nbFrames = 0;
 		lastTime = currTime;
 	}
+
+	/*
+	// Update FPS
+	time[index] = float(glutGet(GLUT_ELAPSED_TIME));
+	index = (index + 1) % samples;
+
+	if (index == 0) {
+		float sum = 0.0f;
+		for (int i = 0; i < samples - 1; i++)
+			sum += time[i + 1] - time[i];
+		float fps = samples / sum;
+
+
+
+		stringstream strm;
+		strm << title;
+		strm.precision(4);
+		strm << " (fps: " << fps << ")";
+		glfwSetWindowTitle(window, strm.str().c_str());
+	}
+	*/
 
 	glutSwapBuffers();
 }
@@ -268,7 +313,7 @@ void display()
 void timerScene(int timestamp_scene)
 {
 	glutPostRedisplay();
-	glutTimerFunc(40, timerScene, 1);
+	glutTimerFunc(1, timerScene, 1);
 }
 
 void cleanup(void)

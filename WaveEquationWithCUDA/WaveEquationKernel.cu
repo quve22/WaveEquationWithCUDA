@@ -5,26 +5,26 @@
 #include <cuda_gl_interop.h>
 
 
-__global__ void JacobiKernel(float4 *u0, float4 *u1, int n, float a, float b)
+__global__ void JacobiKernel(float4 *u0, float4 *u1, float4 *grid, int n, float a, float b)
 {
 	const int c = blockIdx.x * blockDim.x + threadIdx.x;
 	const int r = blockIdx.y * blockDim.y + threadIdx.y;
 
-	if((c >= n) || (r >= n)) return;
-	const int i = c + r * n;	// 1D indexing.
+	if ((c >= n) || (r >= n)) return;
+	const int i = c + r * n;
 
 	float ui_mw = 0;
 	float ui_m1 = 0;
 	float ui_p1 = 0;
 	float ui_pw = 0;
 
-	if(i - n >= 0)
+	if (i - n >= 0)
 		ui_mw = u1[i - n].y;
-	if(i - 1 >= 0)
+	if (i - 1 >= 0)
 		ui_m1 = u1[i - 1].y;
-	if(i + 1 < n * n)
+	if (i + 1 < n * n)
 		ui_p1 = u1[i + 1].y;
-	if(i + n < n * n)
+	if (i + n < n * n)
 		ui_pw = u1[i + n].y;
 
 	float ax = b * (ui_mw + ui_m1 + ui_p1 + ui_pw);
@@ -33,19 +33,34 @@ __global__ void JacobiKernel(float4 *u0, float4 *u1, int n, float a, float b)
 
 	u1[i].y = res;
 
-	// u1[i].y = u0[i].y + 0.05f;
-	// u0[i].y = u1[i].y;
+	const float gridRatioX = (float)blockDim.x / (float)n * blockIdx.x;
+	const float gridRatioY = (float)blockDim.y / (float)n * blockIdx.y;
+
+	grid[i].x = gridRatioX;
+	grid[i].y = gridRatioY;
+	grid[i].z = 0.0;
+	grid[i].w = 1.0;
 }
 
 
-void kernelLauncher(float4 *u0, float4 *u1, int n, float a, float b)
+void kernelLauncher(float4 *u0, float4 *u1, float4 *grid, int n, float a, float b)
 {
-#define TX 16
-#define TY 16
+	// 한 블럭에 들어가는 thread의 수는 최대 1024개. 즉, 32 * 32까지가 한계라는 것.
+#define BLOCK_SIZE 16
 
-	const dim3 blockSize(TX, TY);
-	const dim3 gridSize = dim3((n + TX - 1)/TX, (n + TY - 1)/TY);
-	JacobiKernel<<<gridSize, blockSize>>>(u0, u1, n, a, b);
+	const dim3 blockSize(BLOCK_SIZE, BLOCK_SIZE);
+	const dim3 gridSize = dim3((n + BLOCK_SIZE - 1) / BLOCK_SIZE, (n + BLOCK_SIZE - 1) / BLOCK_SIZE);
+
+	static bool showFlag = false;
+	if (!showFlag)
+	{
+		printf("Block Size : (%d, %d)\n", blockSize.x, blockSize.y);
+		printf("Grid Size : (%d, %d)\n", gridSize.x, gridSize.y);
+		
+		showFlag = true;
+	}
+	
+	JacobiKernel << <gridSize, blockSize >> >(u0, u1, grid, n, a, b);
 }
 
 //-----------------------
@@ -57,7 +72,7 @@ cudaError_t initCudaDevice()
 	cudaError_t cudaStatus;
 
 	cudaStatus = cudaSetDevice(0);
-	if(cudaStatus != cudaSuccess) {
+	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
 		goto Error;
 	}
