@@ -160,7 +160,6 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CudaCompile Include="kernel.cu" />
     <CudaCompile Include="WaveEquationKernel.cu" />
   </ItemGroup>
   <ItemGroup>
@@ -174,7 +173,6 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   <ItemGroup>
     <ClInclude Include="GLDrawing.h" />
     <ClInclude Include="GLInput.h" />
-    <ClInclude Include="kernel.h" />
     <ClInclude Include="Shaders\LoadShaders.h" />
     <ClInclude Include="Surface.h" />
     <ClInclude Include="WaveEquation.h" />
